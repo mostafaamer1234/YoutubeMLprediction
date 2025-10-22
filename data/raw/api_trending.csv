@@ -1,0 +1,11 @@
+video_id,title,description,tags,category_id,publish_date,channel_title,channel_id,viewCount,likeCount,commentCount,duration_iso,channel_subscribers
+ABC123,"Official Music Video - Hit Song 2024","The official music video for the hit song of 2024","music,official,video",10,2024-10-19T12:00:00Z,Music Channel,UC123456,2500000,125000,8500,PT3M45S,5000000
+DEF456,"Tech Review: Latest iPhone","Comprehensive review of the latest iPhone model","tech,review,iphone",28,2024-10-16T08:00:00Z,Tech Reviewer,UC789012,850000,42000,2100,PT12M30S,1200000
+GHI789,"Funny Cat Compilation","Best funny cat moments compilation","funny,cats,compilation",15,2024-10-20T15:30:00Z,Pet Videos,UC345678,1200000,68000,3200,PT8M15S,800000
+JKL012,"Gaming Tutorial: How to Win","Learn advanced gaming strategies","gaming,tutorial,strategy",20,2024-10-18T20:00:00Z,Gaming Pro,UC901234,450000,22000,1800,PT15M20S,600000
+MNO345,"Cooking Recipe: Pasta","Easy pasta recipe for beginners","cooking,recipe,pasta",26,2024-10-16T10:00:00Z,Chef Channel,UC567890,320000,15000,950,PT6M45S,400000
+PQR678,"News Update Today","Latest news updates for today","news,update,current",25,2024-10-21T06:00:00Z,News Network,UC234567,1800000,95000,4500,PT4M30S,2000000
+STU901,"Travel Vlog: Japan Trip","Amazing travel experience in Japan","travel,vlog,japan",22,2024-10-19T14:00:00Z,Traveler,UC890123,650000,35000,2100,PT18M45S,900000
+VWX234,"Fitness Workout Routine","Complete workout routine for fitness","fitness,workout,health",17,2024-10-16T07:00:00Z,Fitness Guru,UC456789,280000,12000,800,PT25M10S,350000
+YZA567,"Movie Trailer Official","Official trailer for upcoming movie","movie,trailer,official",1,2024-10-20T18:00:00Z,Studio Channel,UC123890,3200000,180000,12000,PT2M15S,15000000
+BCD890,"Educational Science Video","Learn about amazing science facts","education,science,learning",27,2024-10-18T11:00:00Z,Science Channel,UC789456,180000,8500,450,PT9M30S,250000

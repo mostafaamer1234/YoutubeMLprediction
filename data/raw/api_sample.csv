@@ -1,0 +1,3 @@
+video_id,title,description,tags,category_id,publish_date,channel_title,channel_id,viewCount,likeCount,commentCount,duration_iso,channel_subscribers
+AAA,Sample Official Video,desc,"official,remix",10,2025-09-30T12:00:00Z,Chan A,CID_A,1200000,34000,1200,PT4M5S,2500000
+BBB,Tech Review 2025,desc2,review,28,2025-10-01T08:00:00Z,Techy,CID_B,85000,2100,150,PT12M30S,320000
