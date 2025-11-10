@@ -2,7 +2,7 @@
 
 ## 1. Description of the Project
 
-This project is my attempt to guess how YouTube videos might perform. I pulled two sets of information: one from quick web scraping runs and another from the official YouTube Data API. I used both sets to build machine learning models that estimate engagement (likes and comments compared to views) and to see what details matter most.
+This project consists of two machine learning models that predict Youtube video popularity and engagment. The first model uses Youtube data API as the Datasource, and the the second uses webscraped data as the datasource. The goal is to compare these two models effectiveness in predicting the video performance metrics and identifying key factors that influence rate and view counts.
 
 ## 2. How to Use
 
@@ -44,7 +44,7 @@ This project is my attempt to guess how YouTube videos might perform. I pulled t
 
 ### Inferencing
 
-Run the quick example to see a prediction:
+Run this example to see a prediction:
 
 ```bash
 python src/predict_example.py
@@ -66,13 +66,11 @@ python src/predict_example.py
 ### Number of Data Samples
 
 - API data: 300 videos (100 trending + 200 music search)
-- Scraped data: 10 videos (scraping struggled with bot checks)
+- Scraped data: 10 videos
 
 ### API Usage
 
 - Endpoints: `videos.list`, `search.list`, `channels.list`
-- Region: US
-- Delay between calls: 0.1 seconds
 - Roughly one quota unit per video pulled
 
 ### 2 Sample Data After Preprocessing
@@ -87,7 +85,7 @@ python src/predict_example.py
 ### Data Cleaning
 
 - Turn view/like/comment strings into plain integers
-- Convert ISO 8601 durations (like `PT2M30S`) into seconds
+- Convert ISO 8601 durations into seconds
 - Work out how many days have passed since upload
 - Fill empty fields with either zeros or medians
 - Lowercase titles and strip odd characters so the text features behave
@@ -119,56 +117,56 @@ python src/predict_example.py
 
 ### Model-1 Based on Scraped Data
 
-#### Model-1 Machine Learning Model
+#### Machine Learning Model
 
 - RandomForestRegressor with 300 trees and no depth cap
 
-#### Model-1 Input to Model
+#### Input to Model
 
 - 15 features taken from the scraped table (duration, title stats, keyword flags)
 
-#### Model-1 Size of Train Data
+#### Size of Train Data
 
 - 8 training samples, 2 testing samples
 
-#### Model-1 Attributes Used
+#### Attributes Used
 
 - Duration in seconds, title length, share of uppercase letters, number flag, plus ten keyword indicators
 
-#### Model-1 Performance With Training Data
+#### Performance With Training Data
 
 - R² ≈ 0.87
 - RMSE ≈ 286,826 views
 
-#### Model-1 Performance With Test Data
+####  Performance With Test Data
 
 - R² ≈ 0.03
 - RMSE ≈ 1,159,372 views
 
 ### Model-2 Based on API Usage
 
-#### Model-2 Machine Learning Model
+#### Machine Learning Model
 
 - RandomForestRegressor with 300 trees and an XGBoost model with 500 trees (used for comparison)
 
-#### Model-2 Input to Model
+#### Input to Model
 
 - 16 features, adding channel subscriber count to the set above
 
-#### Model-2 Size of Train Data
+####  Size of Train Data
 
 - 240 training samples, 60 testing samples
 
-#### Model-2 Attributes Used
+####  Attributes Used
 
 - Duration, title metrics, keyword flags, subscriber count, basic engagement numbers
 
-#### Model-2 Performance With Training Data
+#### Performance With Training Data
 
 - R² ≈ 0.90
 - RMSE ≈ 0.0406 engagement rate points
 
-#### Model-2 Performance With Test Data
+####  Performance With Test Data
 
 - R² ≈ 0.54
 - RMSE ≈ 0.0303 engagement rate points
@@ -189,13 +187,13 @@ python src/predict_example.py
 
 ### Project Findings
 
-- The API-based model wins by a mile because it knows the subscriber counts and other engagement numbers
-- Both models agree that shorter titles with moderate capitalization tend to work better
+- The API-based model performs better because it knows the subscriber counts and other engagement numbers
+- It's true for both models that shorter titles with moderate capitalization tend to work better
 - Videos under about three minutes often pull stronger engagement in this sample
 
 ### Challenges Encountered
 
-- Scraping was brittle and often blocked, so the scraped dataset stayed tiny
+- Scraping was often blocked by scrape blockers, so the scraped dataset wasn't very big
 - Mixing scraped text fields with API metrics required careful cleaning
 - Limited samples made it hard to avoid overfitting, especially for the scraped model
 
@@ -211,3 +209,9 @@ python src/predict_example.py
 - Add richer text analysis (sentiment, key phrases) and maybe thumbnail cues
 - Try stronger validation (like k-fold) and tune the model settings more thoroughly
 - Build simple monitoring if the model ever goes live so drifts can be spotted fast, and I plan to revisit the models once I have more reliable data to feed them.<!-- EOF -->
+
+### Conclusion
+
+- The API based pipeline delivers more dependable results because it has direct access to core engagement signals such as subscriber counts, likes, and comments. The limited fields the scraped workflow has captured led to unstable forecasts. The analysis also highlighted how features like video duration, title length, and capitalization style can shape viewer engagement. Shorter videos and concise, well-formatted titles tended to yield higher engagement rates across samples. In contrast, the scraped model suffered from limited data availability and overfitting, underscoring the importance of dataset size and completeness in predictive modeling.
+
+In future work, expanding the dataset and incorporating new variables—such as sentiment analysis of titles, posting time, and thumbnail attributes—could strengthen the model’s generalizability. Overall, this study reinforced the principle that high-quality, structured data is the foundation of meaningful machine learning outcomes and that careful feature engineering remains essential for understanding digital engagement behavior.
