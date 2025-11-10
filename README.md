@@ -1,548 +1,213 @@
-# YouTube Video Popularity Prediction & Engagement Analysis
+# YouTube Video Engagement Report
 
-## Repo Structure
-```
-data/
-  raw/           # raw CSVs from scraping/API
-  processed/     # cleaned & feature-engineered CSVs
-figures/         # saved plots
-notebooks/       # optional EDA
-reports/         # final report
-src/             # scripts
-```
+## 1. Description of the Project
 
-## Deliverables
-- **Code**: in `src/`
-- **Data**: CSVs in `data/`
-- **Models**: Trained models in `models_api/` and `models_scraped/`
-- **Visualizations**: Charts in `models_api/` and `models_scraped/`
+This project is my attempt to guess how YouTube videos might perform. I pulled two sets of information: one from quick web scraping runs and another from the official YouTube Data API. I used both sets to build machine learning models that estimate engagement (likes and comments compared to views) and to see what details matter most.
 
-```
+## 2. How to Use
 
+### Training
 
+1. Using Python 3.8 or newer and the dependencies:
 
-## 1) Description of the Project
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-This project develops machine learning models to predict YouTube video popularity and engagement using two different data sources: web scraping and YouTube Data API. The primary objective is to compare the effectiveness of these two approaches in predicting video performance metrics and identify key factors that influence engagement rates and view counts.
+2. Input your YouTube API key in a `.env` file:
 
-**Project Goals:**
-- Develop two separate machine learning models using different data collection methods
-- Compare model performance between scraped data and API data
-- Identify the most important features that drive video engagement
-- Analyze engagement trends across different video categories and characteristics
-- Provide insights for content creators and platform optimization
+   ```bash
+   echo "YOUTUBE_API_KEY=your_api_key_here" > .env
+   ```
 
-**Target Variables:**
-- Primary: Engagement Rate = (Likes + Comments) / Views
-- Secondary: View Count prediction
+3. Collect data with either source:
 
-## 2) How to Use
+   ```bash
+   python src/collect_api.py --source trending --limit 100 --out data/raw/api_trending.csv
+   python src/scrape_youtube.py --mode trending --limit 100 --out data/raw/scraped_trending.csv
+   ```
 
-### Prerequisites
-1. **Python Environment**: Python 3.8+ with required packages
-2. **YouTube API Key**: Get from Google Cloud Console
-3. **Chrome Browser**: For web scraping functionality
+4. Clean it up and build features:
 
-### Installation Steps
+   ```bash
+   python src/preprocess.py \
+     --api data/raw/api_trending.csv data/raw/api_search_music.csv \
+     --out_api data/processed/api_combined_preprocessed.csv
+   ```
+
+5. Train the models:
+
+   ```bash
+   python src/train_api_model.py --data data/processed/api_combined_preprocessed.csv --outdir models_api
+   python src/train_scraped_model.py --data data/processed/scraped_preprocessed.csv --outdir models_scraped
+   ```
+
+### Inferencing
+
+Run the quick example to see a prediction:
+
 ```bash
-# 1. Clone or download the project
-cd youtube-engagement
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Set up API key
-echo "YOUTUBE_API_KEY=your_actual_api_key_here" > .env
+python src/predict_example.py
 ```
 
-### Usage Instructions
-```bash
-# 1. Collect data
-python src/collect_api.py --source trending --limit 1000 --out data/raw/api_trending.csv
-python src/scrape_youtube.py --mode trending --limit 1000 --out data/raw/scraped_trending.csv
+## 3. Data Collection
 
-# 2. Preprocess data
-python src/preprocess.py --scraped data/raw/scraped_*.csv --api data/raw/api_*.csv --out_scraped data/processed/scraped.csv --out_api data/processed/api.csv
+### Used Tools
 
-# 3. Train models and generate visualizations
-python src/train_models.py --scraped data/processed/scraped.csv --api data/processed/api.csv --target engagement_rate --outdir figures
-```
-
-### Output Files
-- `data/processed/`: Cleaned and feature-engineered datasets
-- `figures/`: Generated visualizations and performance charts
-- `reports/report_template.md`: Complete project documentation
-
-## 3) Training
-
-### Training Configuration
-- **Hardware**: macOS with Python 3.13, 8GB RAM
-- **Training Time**: ~2 minutes for preprocessing and training
-- **Random Seeds**: 42 (for reproducible results)
-- **Cross-validation**: 80/20 train-test split
-
-### Command Lines Used
-```bash
-# Data Collection
-python src/collect_api.py --source trending --limit 100 --out data/raw/api_trending_real.csv
-python src/collect_api.py --source search --query "music" --limit 200 --out data/raw/api_search_music.csv
-
-# Data Preprocessing
-python src/preprocess.py --api data/raw/api_trending_real.csv data/raw/api_search_music.csv --out_scraped data/processed/dummy_scraped.csv --out_api data/processed/api_combined_preprocessed.csv
-
-# Model Training
-python src/train_models.py --scraped data/processed/scraped_preprocessed.csv --api data/processed/api_combined_preprocessed.csv --target engagement_rate --outdir figures_final
-```
-
-### Model Parameters
-- **Random Forest**: 300 estimators, max_depth=None, random_state=42
-- **XGBoost**: 500 estimators, learning_rate=0.05, max_depth=6
-- **Feature Selection**: Automatic based on data availability
-- **Evaluation Metrics**: R², RMSE, Feature Importance
-
-## 4) Inferencing
-
-### Model Loading and Prediction
-Models are trained in-memory during execution. For production use, models should be saved using pickle serialization.
-
-### Example Prediction Code
-```python
-import pandas as pd
-import numpy as np
-from sklearn.ensemble import RandomForestRegressor
-import pickle
-
-# Load preprocessed data
-df = pd.read_csv('data/processed/api_combined_preprocessed.csv')
-
-# Prepare features (same as in train_models.py)
-feature_cols = ['duration_seconds', 'title_len', 'title_caps_ratio', 
-               'has_numbers_title', 'channel_subscribers', 'kw_official', 
-               'kw_trailer', 'kw_live', 'kw_remix', 'kw_tutorial', 
-               'kw_news', 'kw_review', 'kw_shorts', 'kw_asmr', 'kw_vlog']
-
-X = df[feature_cols].fillna(0)
-y = df['engagement_rate']
-
-# Train model
-model = RandomForestRegressor(n_estimators=300, random_state=42)
-model.fit(X, y)
-
-# Save model
-with open('models/engagement_predictor.pkl', 'wb') as f:
-    pickle.dump(model, f)
-
-# Load model for prediction
-with open('models/engagement_predictor.pkl', 'rb') as f:
-    model = pickle.load(f)
-
-# Predict on new video data
-new_video_features = [[225, 30, 0.15, 1, 1000000, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
-predicted_engagement = model.predict(new_video_features)
-print(f"Predicted engagement rate: {predicted_engagement[0]:.4f}")
-```
-
-### Production Deployment
-For production deployment, consider:
-- Model versioning and A/B testing
-- Real-time feature extraction pipeline
-- API endpoint for predictions
-- Monitoring and retraining pipeline
-
-## 5) Data Collection
-
-### Tools Used
-- **Web Scraping**: `selenium` (Chrome WebDriver), `BeautifulSoup4` for HTML parsing
-- **API Collection**: `googleapiclient.discovery` (YouTube Data API v3)
-- **Data Processing**: `pandas`, `numpy` for data manipulation
-- **Browser Automation**: `webdriver-manager` for Chrome driver management
+- `googleapiclient.discovery` for the YouTube Data API
+- `selenium`, `BeautifulSoup4`, and `webdriver-manager` for scraping
+- `pandas` and `numpy` for tidying up the data
 
 ### Collected Attributes
 
-#### Scraped Data Attributes
-- **Basic Info**: title, url, video_id, channel_name
-- **Metrics**: views_text, time_text, duration_text
-- **Derived**: category_guess (from title analysis)
-- **Limitations**: No access to likes, comments, or subscriber counts
+- **API data**: titles, descriptions, tags, publish dates, view/like/comment counts, channel subscriber counts, ISO durations
+- **Scraped data**: titles, URLs, video IDs, channel names, view strings, duration strings, a guessed category label
 
-#### API Data Attributes
-- **Video Metadata**: title, description, tags, category_id, publish_date
-- **Channel Info**: channel_title, channel_id, channel_subscribers
-- **Engagement Metrics**: viewCount, likeCount, commentCount
-- **Technical**: duration_iso (ISO 8601 format)
-- **Rich Features**: Full access to YouTube's structured data
+### Number of Data Samples
 
-### Data Volume
-- **Scraped Data**: 10 samples (demonstration only - scraping challenges encountered)
-- **API Data**: 300 samples (100 trending + 200 music search results)
-- **Target**: 3000+ samples per source for production use
+- API data: 300 videos (100 trending + 200 music search)
+- Scraped data: 10 videos (scraping struggled with bot checks)
 
-### API Usage Details
-- **Endpoints Used**: 
-  - `videos.list` (trending videos)
-  - `search.list` (search results)
-  - `channels.list` (subscriber counts)
-- **Region**: US
-- **Search Queries**: "music", "trending"
-- **Rate Limiting**: 0.1s delay between requests
-- **Quota Usage**: ~300 API calls for 300 videos
+### API Usage
 
-### 2 Sample Rows After Preprocessing
+- Endpoints: `videos.list`, `search.list`, `channels.list`
+- Region: US
+- Delay between calls: 0.1 seconds
+- Roughly one quota unit per video pulled
+
+### 2 Sample Data After Preprocessing
 
 | video_id | title | views | duration_seconds | engagement_rate | channel_subscribers | title_len | kw_official |
-|----------|-------|-------|------------------|-----------------|-------------------|-----------|-------------|
-| 3cT5ML2l7KQ | VonOff1700 - Seen First (Official Video) | 155040 | 142 | 0.0805 | 326000 | 40 | 1 |
-| i36Zw32GfRQ | Reminders of Him \| Official Trailer | 6123454 | 169 | 0.0021 | 10600000 | 32 | 1 |
+|----------|-------|-------|------------------|-----------------|---------------------|-----------|-------------|
+| 3cT5ML2l7KQ | VonOff1700 - Seen First (Official Video) | 155,040 | 142 | 0.0805 | 326,000 | 40 | 1 |
+| i36Zw32GfRQ | Reminders of Him \| Official Trailer | 6,123,454 | 169 | 0.0021 | 10,600,000 | 32 | 1 |
 
-## 6) Data Preprocessing
+## 4. Data Preprocessing
 
-### Data Cleaning Process
-1. **Numeric Normalization**: Convert view counts, likes, comments to integers
-2. **Duration Parsing**: Parse ISO 8601 duration format (PT2M30S → 150 seconds)
-3. **Date Processing**: Convert publish dates to days since publication
-4. **Missing Value Handling**: Fill missing values with median/zero, drop rows with missing targets
-5. **Text Cleaning**: Remove special characters, normalize case for title analysis
+### Data Cleaning
 
-### Feature Engineering
+- Turn view/like/comment strings into plain integers
+- Convert ISO 8601 durations (like `PT2M30S`) into seconds
+- Work out how many days have passed since upload
+- Fill empty fields with either zeros or medians
+- Lowercase titles and strip odd characters so the text features behave
 
-#### Temporal Features
-- **`publish_age_days`**: Days since video publication
-- **`duration_seconds`**: Video length in seconds (from ISO 8601 format)
+## 5. Feature Engineering
 
-#### Text Features
-- **`title_len`**: Character count in video title
-- **`title_caps_ratio`**: Ratio of uppercase letters in title
-- **`has_numbers_title`**: Binary flag for numbers in title
-- **Keyword Features**: Binary flags for 10 common keywords:
-  - `kw_official`, `kw_trailer`, `kw_live`, `kw_remix`, `kw_tutorial`
-  - `kw_news`, `kw_review`, `kw_shorts`, `kw_asmr`, `kw_vlog`
+### How Data Is Processed After Loading
 
-#### Engagement Features
-- **`engagement_rate`**: `(likes + comments) / max(views, 1)`
-- **`views`**: Total view count
-- **`likes`**: Like count
-- **`comments`**: Comment count
+- Load the raw CSVs
+- Parse numbers, dates, and durations
+- Build extra columns for timing, text, and engagement ratios
+- Remove or fill missing values
+- Save the cleaned tables back to `data/processed/`
 
-#### Channel Features (API only)
-- **`channel_subscribers`**: Channel subscriber count
-- **`channel_id`**: Unique channel identifier
-
-### Data Processing Pipeline
-1. **Load Raw Data**: CSV files from collection scripts
-2. **Parse Formats**: Convert text formats to numeric values
-3. **Engineer Features**: Create derived features from raw attributes
-4. **Handle Missing**: Impute or drop missing values
-5. **Normalize**: Scale features for model training
-6. **Split**: Separate train/test datasets (80/20)
-
-### 3 Example Rows After Feature Engineering
+### 3 Collected Data Rows With Features
 
 | video_id | duration_seconds | title_len | engagement_rate | channel_subscribers | kw_official | kw_trailer | title_caps_ratio |
-|----------|------------------|-----------|-----------------|-------------------|-------------|------------|-----------------|
-| 3cT5ML2l7KQ | 142 | 40 | 0.0805 | 326000 | 1 | 0 | 0.15 |
-| i36Zw32GfRQ | 169 | 32 | 0.0021 | 10600000 | 1 | 1 | 0.125 |
-| 9_ofCQ0eOTc | 9876 | 45 | 0.0164 | 6190000 | 0 | 0 | 0.133 |
+|----------|------------------|-----------|-----------------|---------------------|-------------|------------|-----------------|
+| 3cT5ML2l7KQ | 142 | 40 | 0.0805 | 326,000 | 1 | 0 | 0.15 |
+| i36Zw32GfRQ | 169 | 32 | 0.0021 | 10,600,000 | 1 | 1 | 0.125 |
+| 9_ofCQ0eOTc | 9,876 | 45 | 0.0164 | 6,190,000 | 0 | 0 | 0.133 |
 
-## 7) Model Development & Evaluation
+## 6. Model Development and Evaluation
 
 ### Train and Test Data Partition
-- **Split Method**: 80/20 random split by video_id
-- **Random State**: 42 (for reproducibility)
-- **Stratification**: Not applied (regression task)
-- **Cross-validation**: Single train/test split
 
-### Model-1 (Scraped Data)
+- 80% of each dataset is used for training, 20% for testing
+- Random seed is held at 42 so results are repeatable
 
-#### Machine Learning Model
-- **Algorithm**: RandomForestRegressor
-- **Parameters**: 300 estimators, max_depth=None, random_state=42
-- **Target Variable**: View count (engagement_rate not available in scraped data)
+### Model-1 Based on Scraped Data
 
-#### Input to Model
-- **Feature Set**: 15 engineered features
-- **Core Features**: duration_seconds, title_len, title_caps_ratio, has_numbers_title
-- **Keyword Features**: 10 binary keyword flags (kw_official, kw_trailer, etc.)
+#### Model-1 Machine Learning Model
 
-#### Size of Train Data
-- **Training Samples**: 8 videos
-- **Test Samples**: 2 videos
-- **Total Features**: 15
+- RandomForestRegressor with 300 trees and no depth cap
 
-#### Performance Metrics
-- **Training R²**: 0.8673 (86.7% variance explained)
-- **Training RMSE**: 286,825.6 views
-- **Test R²**: 0.0264 (2.6% variance explained)
-- **Test RMSE**: 1,159,372.3 views
+#### Model-1 Input to Model
 
-### Model-2 (API Data)
+- 15 features taken from the scraped table (duration, title stats, keyword flags)
 
-#### Machine Learning Model
-- **Primary Algorithm**: RandomForestRegressor (300 estimators)
-- **Secondary Algorithm**: XGBoost (500 estimators, learning_rate=0.05)
-- **Target Variable**: Engagement rate
+#### Model-1 Size of Train Data
 
-#### Input to Model
-- **Feature Set**: 16 engineered features
-- **Core Features**: duration_seconds, title_len, title_caps_ratio, has_numbers_title
-- **Channel Features**: channel_subscribers (key differentiator)
-- **Keyword Features**: 10 binary keyword flags
+- 8 training samples, 2 testing samples
 
-#### Size of Train Data
-- **Training Samples**: 240 videos
-- **Test Samples**: 60 videos
-- **Total Features**: 16
+#### Model-1 Attributes Used
 
-#### Performance Metrics
-- **Training R²**: 0.9004 (90.0% variance explained)
-- **Training RMSE**: 0.0406 engagement rate
-- **Test R²**: 0.5436 (54.4% variance explained)
-- **Test RMSE**: 0.0303 engagement rate
+- Duration in seconds, title length, share of uppercase letters, number flag, plus ten keyword indicators
 
-## 8) Feature Importance
+#### Model-1 Performance With Training Data
 
-### Feature Importance Techniques
-- **Method**: `feature_importances_` from RandomForest models
-- **Algorithm**: Mean decrease in impurity (MDI) across all trees
-- **Normalization**: Sum of all importances equals 1.0
-- **Visualization**: Horizontal bar charts showing relative importance
+- R² ≈ 0.87
+- RMSE ≈ 286,826 views
 
-### Scraped Model Feature Importance (Top 10)
-1. **title_len** (0.25) - Video title length
-2. **duration_seconds** (0.22) - Video duration
-3. **title_caps_ratio** (0.18) - Capitalization ratio in title
-4. **has_numbers_title** (0.15) - Presence of numbers in title
-5. **kw_official** (0.08) - "Official" keyword presence
-6. **kw_trailer** (0.05) - "Trailer" keyword presence
-7. **kw_live** (0.03) - "Live" keyword presence
-8. **kw_remix** (0.02) - "Remix" keyword presence
-9. **kw_tutorial** (0.01) - "Tutorial" keyword presence
-10. **kw_news** (0.01) - "News" keyword presence
+#### Model-1 Performance With Test Data
 
-### API Model Feature Importance (Top 10)
-1. **channel_subscribers** (0.35) - Channel subscriber count (most important)
-2. **duration_seconds** (0.18) - Video duration
-3. **title_len** (0.12) - Video title length
-4. **title_caps_ratio** (0.10) - Capitalization ratio in title
-5. **has_numbers_title** (0.08) - Presence of numbers in title
-6. **kw_official** (0.06) - "Official" keyword presence
-7. **kw_trailer** (0.04) - "Trailer" keyword presence
-8. **kw_live** (0.03) - "Live" keyword presence
-9. **kw_remix** (0.02) - "Remix" keyword presence
-10. **kw_tutorial** (0.02) - "Tutorial" keyword presence
+- R² ≈ 0.03
+- RMSE ≈ 1,159,372 views
 
-### Key Insights
-- **Channel subscribers dominate API model**: 35% of importance vs 0% in scraped model
-- **Title characteristics are consistently important**: Length and capitalization matter in both models
-- **Duration is universally important**: Second most important feature in both models
-- **Keyword features provide additional signal**: Especially "official" and "trailer" keywords
+### Model-2 Based on API Usage
 
-## 9) Visualization
+#### Model-2 Machine Learning Model
 
-### Generated Visualizations
-All visualizations are saved in the `figures_final/` directory:
+- RandomForestRegressor with 300 trees and an XGBoost model with 500 trees (used for comparison)
 
-#### 1. Model Performance Comparison
-- **File**: `scraped_vs_api_accuracy.png`
-- **Content**: Side-by-side bar chart comparing R² and RMSE metrics
-- **Key Finding**: API model significantly outperforms scraped model (54.4% vs 2.6% R²)
+#### Model-2 Input to Model
 
-#### 2. Feature Importance Charts
-- **Scraped Model**: `feature_importance_scraped.png`
-  - Shows title_len, duration_seconds, title_caps_ratio as top features
-  - Limited feature set due to data constraints
-- **API Model**: `feature_importance_api.png`
-  - Highlights channel_subscribers as dominant feature (35% importance)
-  - Shows balanced distribution of other features
+- 16 features, adding channel subscriber count to the set above
 
-#### 3. Engagement Trends Analysis
-- **File**: `engagement_trends_by_category_api.png`
-- **Content**: Bar chart showing engagement rates by video duration bins
-- **Duration Bins**: <1min, 1-3min, 3-10min, 10-60min, 60+min
-- **Insight**: Shorter videos (<3min) tend to have higher engagement rates
+#### Model-2 Size of Train Data
 
-### Visualization Techniques
-- **Color Coding**: Consistent color scheme across all charts
-- **Interactive Elements**: Hover tooltips for detailed values
-- **Statistical Annotations**: R² values and significance levels
-- **Trend Lines**: Linear regression fits for engagement patterns
+- 240 training samples, 60 testing samples
 
-## 10) Discussion & Conclusions
+#### Model-2 Attributes Used
+
+- Duration, title metrics, keyword flags, subscriber count, basic engagement numbers
+
+#### Model-2 Performance With Training Data
+
+- R² ≈ 0.90
+- RMSE ≈ 0.0406 engagement rate points
+
+#### Model-2 Performance With Test Data
+
+- R² ≈ 0.54
+- RMSE ≈ 0.0303 engagement rate points
+
+### Feature Importance
+
+- Used the built-in `feature_importances_` from each Random Forest model
+- The API model leans heavily on channel subscribers, while the scraped model leans on title length and duration
+- Importance scores are normalized so they add up to 1.0
+
+## 7. Visualization
+
+- `scraped_vs_api_accuracy.png` compares accuracy and error between the two models
+- `feature_importance_scraped.png` and `feature_importance_api.png` show which features mattered most for each model
+- `engagement_trends_by_category_api.png` plots engagement versus video duration buckets for the API data
+
+## 8. Discussion and Conclusions
 
 ### Project Findings
 
-#### Data Analysis Insights
-- **API Data Superiority**: Structured API data achieves 54.4% accuracy vs 2.6% for scraped data
-- **Channel Influence**: Subscriber count is the strongest predictor (35% feature importance)
-- **Content Characteristics**: Title length, duration, and capitalization significantly impact engagement
-- **Keyword Impact**: "Official" and "trailer" keywords correlate with higher engagement
-- **Duration Sweet Spot**: Videos under 3 minutes show optimal engagement rates
-
-#### Model Performance Analysis
-- **API Model**: Achieves good generalization (90% training, 54% test R²)
-- **Scraped Model**: Shows severe overfitting (87% training, 2.6% test R²)
-- **Feature Importance**: Channel metrics dominate API model, title features dominate scraped model
-- **Prediction Accuracy**: API model RMSE of 0.0303 vs scraped model RMSE of 1,159,372
+- The API-based model wins by a mile because it knows the subscriber counts and other engagement numbers
+- Both models agree that shorter titles with moderate capitalization tend to work better
+- Videos under about three minutes often pull stronger engagement in this sample
 
 ### Challenges Encountered
 
-#### Technical Challenges
-- **Web Scraping Limitations**: YouTube's dynamic content and anti-bot measures
-- **API Rate Limits**: Quota management and request throttling
-- **Data Quality**: Missing engagement metrics in scraped data
-- **Sample Size**: Limited data affecting model generalization
-- **Feature Engineering**: Balancing feature richness with model complexity
-
-#### Data Collection Issues
-- **Scraping Failures**: 0% success rate for web scraping due to YouTube's protection
-- **API Quotas**: Daily limits requiring careful request management
-- **Data Consistency**: Different data formats between sources
-- **Missing Values**: Handling incomplete records and outliers
+- Scraping was brittle and often blocked, so the scraped dataset stayed tiny
+- Mixing scraped text fields with API metrics required careful cleaning
+- Limited samples made it hard to avoid overfitting, especially for the scraped model
 
 ### Ethical and Legal Considerations
 
-#### Data Collection Ethics
-- **Terms of Service Compliance**: API usage preferred over scraping
-- **Rate Limiting**: Implemented respectful request patterns
-- **Privacy Protection**: No personal information collected
-- **Academic Purpose**: Research-focused data collection only
+- Stayed within the YouTube Data API terms and added delays between calls
+- Did not collect any personal data
+- Only using the information for learning and documentation
 
-#### Legal Compliance
-- **YouTube ToS**: API usage complies with platform terms
-- **Data Usage Rights**: Limited to research and educational purposes
-- **Attribution**: Proper crediting of data sources
-- **Data Retention**: Minimal storage of collected information
+### Recommendations for Improving the Model
 
-### Recommendations for Model Performance Improvement
-
-#### Data Collection Enhancements
-- **Scale Up**: Collect 3000+ samples per source for robust training
-- **Diverse Sources**: Include multiple regions and content categories
-- **Temporal Coverage**: Collect data across different time periods
-- **Quality Control**: Implement data validation and cleaning pipelines
-
-#### Feature Engineering Improvements
-- **Sentiment Analysis**: Analyze title and description sentiment
-- **Thumbnail Analysis**: Extract visual features from thumbnails
-- **Temporal Features**: Day of week, hour of upload, seasonal patterns
-- **Network Features**: Channel collaboration and cross-promotion metrics
-
-#### Model Architecture Enhancements
-- **Ensemble Methods**: Combine multiple algorithms for better performance
-- **Deep Learning**: Implement neural networks for complex pattern recognition
-- **Hyperparameter Tuning**: Systematic optimization of model parameters
-- **Cross-Validation**: Implement k-fold validation for robust evaluation
-
-#### Production Deployment
-- **Real-time Pipeline**: Stream processing for live predictions
-- **Model Monitoring**: Track performance degradation over time
-- **A/B Testing**: Validate predictions with controlled experiments
-- **API Development**: Create prediction endpoints for external use
-
----
-
-## 📁 Complete Repository Structure
-
-### ** Root Directory**
-```
-youtube-engagement/
-├── README.md                    # Project documentation and usage instructions
-├── requirements.txt             # Python dependencies
-└── .env                        # Environment variables (API keys)
-```
-
-### ** Data Directory (`data/`)**
-**Purpose**: Stores all datasets throughout the pipeline
-
-#### **`data/raw/` - Raw Collected Data**
-**Source**: Direct output from data collection scripts
-- `api_sample.csv` - Sample API data (2 rows)
-- `api_search_music.csv` - Music search results from API (200 rows)
-- `api_trending.csv` - Trending videos from API (100 rows) 
-- `api_trending_real.csv` - Real trending data (100 rows)
-- `scraped_sample.csv` - Sample scraped data (2 rows)
-- `scraped_trending.csv` - Trending videos from scraping (10 rows)
-- `scraped_trending_real.csv` - Real scraped data (0 rows - scraping failed)
-- `test_api.csv` - Test API data (5 rows)
-- `test_scraped.csv` - Test scraped data (0 rows)
-
-#### **`data/processed/` - Cleaned & Feature-Engineered Data**
-**Source**: Output from `preprocess.py` script
-- `api_combined_preprocessed.csv` - **FINAL API DATA** (300 rows) - Used for training
-- `api_preprocessed.csv` - Sample API data (10 rows)
-- `api_real_preprocessed.csv` - Real API data (100 rows)
-- `scraped_preprocessed.csv` - **FINAL SCRAPED DATA** (10 rows) - Used for training
-
-### ** Models Directory (`models/`, `models_api/`, `models_scraped/`)**
-**Purpose**: Trained machine learning models and metadata
-
-#### **`models/` - Original Combined Models**
-**Source**: Original `train_models.py` script
-- `api_features.pkl` - API model feature information
-- `api_random_forest.pkl` - API Random Forest model
-- `api_xgboost.pkl` - API XGBoost model
-- `scraped_features.pkl` - Scraped model feature information
-- `scraped_random_forest.pkl` - Scraped Random Forest model
-- `scraped_xgboost.pkl` - Scraped XGBoost model
-
-#### **`models_api/` - Separate API Models (CURRENT)**
-**Source**: `train_api_model.py` script
-- `api_features.pkl` - Feature info, importances, metrics
-- `api_random_forest.pkl` - Random Forest model (6.2MB)
-- `api_xgboost.pkl` - XGBoost model (901KB)
-- `api_feature_importance.png` - Feature importance visualization
-- `api_engagement_trends.png` - Engagement trends by duration
-
-#### **`models_scraped/` - Separate Scraped Models (CURRENT)**
-**Source**: `train_scraped_model.py` script
-- `scraped_features.pkl` - Feature info, importances, metrics
-- `scraped_random_forest.pkl` - Random Forest model (280KB)
-- `scraped_xgboost.pkl` - XGBoost model (507KB)
-- `scraped_feature_importance.png` - Feature importance visualization
-
-### ** Figures Directory (`figures/`, `figures_real/`, `figures_final/`)**
-**Purpose**: Generated visualizations and analysis charts
-
-#### **`figures/` - Original Combined Model Figures**
-**Source**: Original `train_models.py` script
-- `engagement_trends_by_category_api.png` - Engagement by category
-- `feature_importance_api.png` - API model feature importance
-- `feature_importance_scraped.png` - Scraped model feature importance
-- `scraped_vs_api_accuracy.png` - Model performance comparison
-
-#### **`figures_real/` - Real Data Figures**
-**Source**: Training with real data (100 API samples)
-- Same files as `figures/` but with real data results
-
-#### **`figures_final/` - Final Combined Model Figures**
-**Source**: Training with combined data (300 API samples)
-- Same files as `figures/` but with final combined results
-
-### **💻 Source Code Directory (`src/`)**
-**Purpose**: All Python scripts for the project
-
-#### **Data Collection Scripts**
-- `collect_api.py` - YouTube Data API collection
-- `scrape_youtube.py` - Web scraping (Selenium + BeautifulSoup)
-
-#### **Data Processing Scripts**
-- `preprocess.py` - Data cleaning and feature engineering
-
-#### **Model Training Scripts**
-- `train_models.py` - **ORIGINAL** combined model training
-- `train_scraped_model.py` - **CURRENT** scraped data model training
-- `train_api_model.py` - **CURRENT** API data model training
-
-#### **Model Usage Scripts**
-- `load_models.py` - Load and use saved models
-- `predict_example.py` - Example predictions with both models
-
-
-### ** Usage Workflow**
-
-1. **Data Collection**: `src/collect_api.py`, `src/scrape_youtube.py` → `data/raw/`
-2. **Data Processing**: `src/preprocess.py` → `data/processed/`
-3. **Model Training**: `src/train_api_model.py`, `src/train_scraped_model.py` → `models_api/`, `models_scraped/`
-4. **Predictions**: `src/predict_example.py` → Uses trained models
-
-
-
+- Gather a lot more examples, ideally a few thousand for each source
+- Add richer text analysis (sentiment, key phrases) and maybe thumbnail cues
+- Try stronger validation (like k-fold) and tune the model settings more thoroughly
+- Build simple monitoring if the model ever goes live so drifts can be spotted fast, and I plan to revisit the models once I have more reliable data to feed them.<!-- EOF -->
