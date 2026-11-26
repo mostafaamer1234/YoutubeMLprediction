@@ -1,5 +1,7 @@
 # YouTube Video Engagement Report
 
+**Results page: [video-reach.vercel.app](https://video-reach.vercel.app)**. Out-of-fold predictions for all 300 videos: views are predictable on a log scale, engagement is not.
+
 ## 1. Description of the Project
 
 This project consists of two machine learning models that predict Youtube video popularity and engagment. The first model uses Youtube data API as the Datasource, and the the second uses webscraped data as the datasource. The goal is to compare these two models effectiveness in predicting the video performance metrics and identifying key factors that influence rate and view counts.
