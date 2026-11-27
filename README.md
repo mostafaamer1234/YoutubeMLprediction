@@ -1,10 +1,16 @@
 # YouTube Video Engagement Report
 
-**Results page: [video-reach.vercel.app](https://video-reach.vercel.app)**. Out-of-fold predictions for all 300 videos: views are predictable on a log scale, engagement is not.
+![CI](https://github.com/mostafaamer1234/YoutubeMLprediction/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/python-3.12-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+
+**Try it: [video-reach.vercel.app](https://video-reach.vercel.app)**. Type a title, length, channel size and age to get a view estimate with an 80% range, a first-year projection and comparable videos, from the random forest running in your browser. Model export: `python src/export_site_model.py`. Out-of-fold results are at [/about](https://video-reach.vercel.app/about).
+
+
 
 ## 1. Description of the Project
 
-This project consists of two machine learning models that predict Youtube video popularity and engagment. The first model uses Youtube data API as the Datasource, and the the second uses webscraped data as the datasource. The goal is to compare these two models effectiveness in predicting the video performance metrics and identifying key factors that influence rate and view counts.
+This project consists of two machine learning models that predict Youtube video popularity and engagement. The first model uses Youtube data API as the Datasource, and the the second uses webscraped data as the datasource. The goal is to compare these two models effectiveness in predicting the video performance metrics and identifying key factors that influence rate and view counts.
 
 ## 2. How to Use
 
@@ -217,3 +223,27 @@ python src/predict_example.py
 - The API based pipeline delivers more dependable results because it has direct access to core engagement signals such as subscriber counts, likes, and comments. The limited fields the scraped workflow has captured led to unstable forecasts. The analysis also highlighted how features like video duration, title length, and capitalization style can shape viewer engagement. Shorter videos and concise, well-formatted titles tended to yield higher engagement rates across samples. In contrast, the scraped model suffered from limited data availability and overfitting, underscoring the importance of dataset size and completeness in predictive modeling.
 
 In future work, expanding the dataset and incorporating new variables—such as sentiment analysis of titles, posting time, and thumbnail attributes—could strengthen the model’s generalizability. Overall, this study reinforced the principle that high-quality, structured data is the foundation of meaningful machine learning outcomes and that careful feature engineering remains essential for understanding digital engagement behavior.
+
+
+## Cross-validated results (recommended reading)
+
+The single train/test splits above are small: 60 test videos for the API model, and only 2 for the scraped model. `src/evaluate_cv.py` re-runs the models with 5-fold cross-validation next to a baseline that always predicts the mean:
+
+| Task | Model | Videos | CV R² (mean ± sd) | CV RMSE |
+|---|---|---|---|---|
+| Engagement rate | Baseline (predict mean) | 300 | -0.11 ± 0.16 | 0.0878 |
+| Engagement rate | Random forest | 300 | -0.44 ± 0.53 | 0.0909 |
+| Engagement rate | XGBoost | 300 | -0.21 ± 0.95 | 0.0826 |
+| **log(views)** | Baseline (predict mean) | 300 | -0.04 ± 0.04 | 2.6015 |
+| **log(views)** | **Random forest** | 300 | **0.74 ± 0.06** | 1.3013 |
+| **log(views)** | XGBoost | 300 | 0.72 ± 0.06 | 1.3347 |
+
+What this shows:
+- **Engagement rate is not predictable from these metadata features.** Cross-validated R² is no better than predicting the mean, so the single-split R² of 0.54 reported earlier was split luck driven by a few outlier videos.
+- **View counts are predictable on a log scale**, mostly through channel subscribers. R² is 0.74 and stable across folds.
+- **The scraped dataset has 10 rows**, too few to evaluate, so it is left out until more data is collected.
+
+```bash
+pip install -r requirements.txt
+python src/evaluate_cv.py
+```
