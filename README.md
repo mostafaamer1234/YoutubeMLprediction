@@ -4,7 +4,7 @@
 ![Python](https://img.shields.io/badge/python-3.12-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
-**Results page: [video-reach.vercel.app](https://video-reach.vercel.app)**. Out-of-fold predictions for all 300 videos: views are predictable on a log scale, engagement is not. The page lives in `site/` and its data comes from `python src/export_site_data.py`.
+**Try it: [video-reach.vercel.app](https://video-reach.vercel.app)**. Type a title, length, channel size and age to get a view estimate with an 80% range, a first-year projection and comparable videos, from the random forest running in your browser. Model export: `python src/export_site_model.py`. Out-of-fold results are at [/about](https://video-reach.vercel.app/about).
 
 
 

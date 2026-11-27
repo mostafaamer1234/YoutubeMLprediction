@@ -3,78 +3,77 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Video Reach · What metadata can and cannot predict</title>
-  <meta name="description" content="Predicting video views and engagement from metadata, cross-validated on 300 videos. Views are predictable. Engagement is not." />
-  <link rel="stylesheet" href="quiet.css" />
-  <link rel="stylesheet" href="app.css" />
+  <title>Video Reach · YouTube view estimator</title>
+  <meta name="description" content="Estimate how many views a YouTube video will get from its title, length, channel size and age, with a likely range and a first-year projection. Runs a random forest in your browser." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%237c3aed'/%3E%3Cpath d='M13 10l9 6-9 6z' fill='white'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tool.css" />
 </head>
-<body>
-  <nav class="q-nav">
-    <div class="q-wrap">
-      <span class="q-brand">Video Reach</span>
-      <div class="q-links">
-        <a href="#plot">Predictions</a>
-        <a href="#pipeline">Pipeline</a>
-        <a href="https://github.com/mostafaamer1234/YoutubeMLprediction">GitHub</a>
+<body class="app">
+  <header class="top">
+    <a class="brand" href="/"><span class="mark" aria-hidden="true"><svg viewBox="0 0 32 32" width="20" height="20"><path d="M12 9l10 7-10 7z" fill="#fff"/></svg></span>
+      <span class="brand-text"><b>Video Reach</b><span>YouTube view estimator</span></span></a>
+    <nav>
+      <a class="ghost" href="/about"><span class="t">How accurate is it?</span><span class="sr-only">About</span></a>
+      <a class="ghost" href="https://github.com/mostafaamer1234/YoutubeMLprediction" aria-label="Source on GitHub"><svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38v-1.49c-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+    </nav>
+  </header>
+
+  <main class="workspace">
+    <div class="tool-head">
+      <div>
+        <h1>How many views will it get?</h1>
+        <p>Describe a video and get an estimate with a likely range, a first-year projection and comparable videos.</p>
       </div>
+      <button class="btn small secondary" id="example" type="button">Load a real video</button>
     </div>
-  </nav>
 
-  <main>
-    <header class="q-wrap q-hero">
-      <p class="q-eyebrow">Applied ML · Data collection to evaluation</p>
-      <h1 class="q-title">Views are predictable. <span class="q-muted">Engagement isn't. Here is the proof.</span></h1>
-      <p class="q-lede">300 videos from the YouTube Data API, a random forest, and five-fold cross-validation. Every dot is a video the model never trained on.</p>
-    </header>
-
-    <section class="q-wrap" id="plot">
-      <div class="head">
-        <div class="q-seg" id="task" role="group" aria-label="Target">
-          <button data-k="views" aria-pressed="true">Views</button>
-          <button data-k="engagement" aria-pressed="false">Engagement rate</button>
+    <section class="split">
+      <form class="panel sticky" id="form" autocomplete="off">
+        <div class="preview" id="preview" aria-hidden="true">
+          <div class="thumb" id="thumb"><span class="thumb-title" id="thumb-title"></span><span class="badge" id="badge"></span></div>
+          <div class="meta"><span class="avatar"></span><div><b id="pv-title"></b><span id="pv-line"></span></div></div>
         </div>
-        <div class="r2"><span class="q-caps">Out-of-fold R²</span><b id="r2"></b></div>
-      </div>
-      <div class="plot-wrap">
-        <svg id="chart" viewBox="0 0 640 520" role="img" aria-label="Predicted versus actual"></svg>
-        <div class="tip" id="tip" hidden></div>
-      </div>
-      <p class="q-small verdict" id="verdict"></p>
-    </section>
+        <div class="group">
+          <label class="label" for="title">Title</label>
+          <input class="input" id="title" value="How I Built a Robot in 30 Days (Full Tutorial)" />
+          <div class="detected" id="detected"></div>
+        </div>
+        <div class="group">
+          <label class="label" for="duration">Length</label>
+          <input class="input" id="duration" value="12:30" inputmode="numeric" placeholder="mm:ss" />
+          <div class="chips presets" data-target="duration">
+            <button class="chip" type="button" data-v="0:45">Short</button><button class="chip" type="button" data-v="3:30">3 min</button>
+            <button class="chip" type="button" data-v="12:00">12 min</button><button class="chip" type="button" data-v="1:00:00">1 hour</button>
+          </div>
+        </div>
+        <div class="group">
+          <label class="label" for="subs">Channel subscribers</label>
+          <input class="input" id="subs" value="250,000" inputmode="numeric" />
+          <div class="chips presets" data-target="subs">
+            <button class="chip" type="button" data-v="2,000">2K</button><button class="chip" type="button" data-v="100,000">100K</button>
+            <button class="chip" type="button" data-v="1,000,000">1M</button><button class="chip" type="button" data-v="20,000,000">20M</button>
+          </div>
+        </div>
+        <div class="group">
+          <span class="label">Views after</span>
+          <div class="seg full" id="age" role="group" aria-label="Days since upload">
+            <button type="button" data-d="1" aria-pressed="false">1 day</button><button type="button" data-d="7" aria-pressed="false">1 week</button>
+            <button type="button" data-d="30" aria-pressed="true">1 month</button><button type="button" data-d="365" aria-pressed="false">1 year</button>
+          </div>
+        </div>
+        <p class="hint">The preview card above updates as you type. Nothing is sent anywhere.</p>
+      </form>
 
-    <section class="q-wrap q-section">
-      <h2 class="q-h2">Fold by fold, against a baseline.</h2>
-      <table class="q-table">
-        <thead><tr><th>Target</th><th>Model</th><th class="num">CV R² (mean ± sd)</th><th class="num">CV RMSE</th></tr></thead>
-        <tbody>
-          <tr><td>Engagement rate</td><td>Predict the mean</td><td class="num">-0.11 ± 0.16</td><td class="num">0.0878</td></tr>
-          <tr><td>Engagement rate</td><td>Random forest</td><td class="num">-0.44 ± 0.53</td><td class="num">0.0909</td></tr>
-          <tr><td>Engagement rate</td><td>XGBoost</td><td class="num">-0.21 ± 0.95</td><td class="num">0.0826</td></tr>
-          <tr><td>log(views)</td><td>Predict the mean</td><td class="num">-0.04 ± 0.04</td><td class="num">2.6015</td></tr>
-          <tr class="q-hl"><td>log(views)</td><td>Random forest</td><td class="num">0.74 ± 0.06</td><td class="num">1.3013</td></tr>
-          <tr><td>log(views)</td><td>XGBoost</td><td class="num">0.72 ± 0.06</td><td class="num">1.3347</td></tr>
-        </tbody>
-      </table>
-      <p class="q-note table-note">An earlier single 80/20 split reported R² 0.54 for engagement. Cross-validation shows that was luck from a few outlier videos, so the claim was withdrawn.</p>
-    </section>
-
-    <section class="q-wrap q-section" id="pipeline">
-      <h2 class="q-h2">Two data sources, one pipeline.</h2>
-      <div class="q-steps">
-        <div class="q-step"><h3 class="q-h3">Collect</h3><p>The YouTube Data API for trending and search results, and a Selenium scraper as a second source to compare against.</p></div>
-        <div class="q-step"><h3 class="q-h3">Featurize</h3><p>Duration, title length and capitalization, keyword flags such as official or live, publish age and channel subscribers.</p></div>
-        <div class="q-step"><h3 class="q-h3">Model</h3><p>Random forest and XGBoost regressors, with feature importance and a predict-the-mean baseline for every target.</p></div>
-        <div class="q-step"><h3 class="q-h3">Validate</h3><p>Five-fold cross-validation. The scraped set has 10 rows, too few to judge, so it is reported but not claimed.</p></div>
-      </div>
+      <section class="panel plain" id="out" aria-live="polite">
+        <div class="empty"><div><span class="spin"></span></div></div>
+      </section>
     </section>
   </main>
 
-  <footer class="q-foot">
-    <div class="q-wrap">
-      <span>Video Reach · Mostafa Amer</span>
-      <a href="https://github.com/mostafaamer1234/YoutubeMLprediction">Source on GitHub</a>
-    </div>
-  </footer>
-  <script src="app.js"></script>
+  <footer class="foot">A random forest trained on 300 YouTube videos from the Data API. Trending videos are over-represented, so treat estimates as optimistic. <a href="/about">How accurate is it?</a></footer>
+  <script src="tool.js"></script>
 </body>
 </html>

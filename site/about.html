@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>About · Video Reach</title>
+  <meta name="description" content="Predicting video views and engagement from metadata, cross-validated on 300 videos. Views are predictable. Engagement is not." />
+  <link rel="stylesheet" href="quiet.css" />
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <nav class="q-nav">
+    <div class="q-wrap">
+      <a class="q-brand" href="/">Video Reach</a>
+      <div class="q-links">
+        <a href="/">Open the predictor</a>
+        <a href="#plot">Predictions</a>
+        <a href="#pipeline">Pipeline</a>
+        <a href="https://github.com/mostafaamer1234/YoutubeMLprediction">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <header class="q-wrap q-hero">
+      <p class="q-eyebrow">Applied ML · Data collection to evaluation</p>
+      <h1 class="q-title">Views are predictable. <span class="q-muted">Engagement isn't. Here is the proof.</span></h1>
+      <p class="q-lede">300 videos from the YouTube Data API, a random forest, and five-fold cross-validation. Every dot is a video the model never trained on.</p>
+    </header>
+
+    <section class="q-wrap" id="plot">
+      <div class="head">
+        <div class="q-seg" id="task" role="group" aria-label="Target">
+          <button data-k="views" aria-pressed="true">Views</button>
+          <button data-k="engagement" aria-pressed="false">Engagement rate</button>
+        </div>
+        <div class="r2"><span class="q-caps">Out-of-fold R²</span><b id="r2"></b></div>
+      </div>
+      <div class="plot-wrap">
+        <svg id="chart" viewBox="0 0 640 520" role="img" aria-label="Predicted versus actual"></svg>
+        <div class="tip" id="tip" hidden></div>
+      </div>
+      <p class="q-small verdict" id="verdict"></p>
+    </section>
+
+    <section class="q-wrap q-section">
+      <h2 class="q-h2">Fold by fold, against a baseline.</h2>
+      <table class="q-table">
+        <thead><tr><th>Target</th><th>Model</th><th class="num">CV R² (mean ± sd)</th><th class="num">CV RMSE</th></tr></thead>
+        <tbody>
+          <tr><td>Engagement rate</td><td>Predict the mean</td><td class="num">-0.11 ± 0.16</td><td class="num">0.0878</td></tr>
+          <tr><td>Engagement rate</td><td>Random forest</td><td class="num">-0.44 ± 0.53</td><td class="num">0.0909</td></tr>
+          <tr><td>Engagement rate</td><td>XGBoost</td><td class="num">-0.21 ± 0.95</td><td class="num">0.0826</td></tr>
+          <tr><td>log(views)</td><td>Predict the mean</td><td class="num">-0.04 ± 0.04</td><td class="num">2.6015</td></tr>
+          <tr class="q-hl"><td>log(views)</td><td>Random forest</td><td class="num">0.74 ± 0.06</td><td class="num">1.3013</td></tr>
+          <tr><td>log(views)</td><td>XGBoost</td><td class="num">0.72 ± 0.06</td><td class="num">1.3347</td></tr>
+        </tbody>
+      </table>
+      <p class="q-note table-note">An earlier single 80/20 split reported R² 0.54 for engagement. Cross-validation shows that was luck from a few outlier videos, so the claim was withdrawn.</p>
+    </section>
+
+    <section class="q-wrap q-section" id="pipeline">
+      <h2 class="q-h2">Two data sources, one pipeline.</h2>
+      <div class="q-steps">
+        <div class="q-step"><h3 class="q-h3">Collect</h3><p>The YouTube Data API for trending and search results, and a Selenium scraper as a second source to compare against.</p></div>
+        <div class="q-step"><h3 class="q-h3">Featurize</h3><p>Duration, title length and capitalization, keyword flags such as official or live, publish age and channel subscribers.</p></div>
+        <div class="q-step"><h3 class="q-h3">Model</h3><p>Random forest and XGBoost regressors, with feature importance and a predict-the-mean baseline for every target.</p></div>
+        <div class="q-step"><h3 class="q-h3">Validate</h3><p>Five-fold cross-validation. The scraped set has 10 rows, too few to judge, so it is reported but not claimed.</p></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="q-foot">
+    <div class="q-wrap">
+      <span>Video Reach · Mostafa Amer</span>
+      <a href="https://github.com/mostafaamer1234/YoutubeMLprediction">Source on GitHub</a>
+    </div>
+  </footer>
+  <script src="about.js"></script>
+</body>
+</html>
